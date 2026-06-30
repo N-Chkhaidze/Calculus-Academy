@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+html {
+  /* Scale the entire user interface slightly for better accessibility and readability */
+  zoom: 1.2;
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Calculus Academy",
+  "description": "An interactive, gamified platform for learning Calculus, covering Limits, Derivatives, and Integrals with live leaderboards, progress tracking, and lessons.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

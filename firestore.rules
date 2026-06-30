@@ -1,0 +1,102 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global Safety Net - Default Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Core Identity and Security Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Entity Validation Blueprints ---
+
+    // Validates public user profiles
+    function isValidUserProfilePublic(data) {
+      return data.userId == request.auth.uid &&
+             data.displayName is string &&
+             data.displayName.size() > 0 &&
+             data.displayName.size() <= 50 &&
+             data.score is int &&
+             data.score >= -1000 &&
+             data.score <= 100000 &&
+             data.unlockedLevel is int &&
+             data.unlockedLevel >= 0 &&
+             data.unlockedLevel <= 3 &&
+             data.badges is list &&
+             data.badges.size() <= 20 &&
+             data.updatedAt == request.time;
+    }
+
+    // Validates private customer records (PII)
+    function isValidUserProfilePrivate(data) {
+      return data.userId == request.auth.uid &&
+             data.email is string &&
+             data.email.size() <= 100 &&
+             data.updatedAt == request.time;
+    }
+
+    // --- Collection Matching and Access Rules ---
+
+    // Public Profile Collection
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId);
+      allow list: if isSignedIn();
+      
+      allow create: if isSignedIn() && 
+                       isOwner(userId) && 
+                       isValidId(userId) && 
+                       isValidUserProfilePublic(incoming()) &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'score', 'unlockedLevel', 'badges', 'updatedAt']) &&
+                       incoming().keys().size() == 6;
+
+      allow update: if isSignedIn() && 
+                       isOwner(userId) && 
+                       isValidId(userId) && 
+                       isValidUserProfilePublic(incoming()) &&
+                       incoming().userId == existing().userId && // Immutable field
+                       (
+                         // Action: Score increase or progress update
+                         incoming().diff(existing()).affectedKeys().hasOnly(['score', 'unlockedLevel', 'badges', 'updatedAt', 'displayName'])
+                       );
+    }
+
+    // Secure Private Profile Collection (PII)
+    match /usersPrivate/{userId} {
+      allow get: if isSignedIn() && isOwner(userId) && isValidId(userId);
+      
+      allow create: if isSignedIn() && 
+                       isOwner(userId) && 
+                       isValidId(userId) && 
+                       isValidUserProfilePrivate(incoming()) &&
+                       incoming().keys().hasAll(['userId', 'email', 'updatedAt']) &&
+                       incoming().keys().size() == 3;
+
+      allow update: if isSignedIn() && 
+                       isOwner(userId) && 
+                       isValidId(userId) && 
+                       isValidUserProfilePrivate(incoming()) &&
+                       incoming().userId == existing().userId && // Immutable field
+                       incoming().diff(existing()).affectedKeys().hasOnly(['email', 'updatedAt']);
+    }
+  }
+}

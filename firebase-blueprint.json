@@ -1,0 +1,79 @@
+{
+  "entities": {
+    "UserProfilePublic": {
+      "title": "Public Profile",
+      "description": "Public educational scores, unlocked levels, and badging information.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The unique Firebase Auth UID of the user."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The name selected by the user for the leaderboard."
+        },
+        "score": {
+          "type": "integer",
+          "description": "The user's cumulative points."
+        },
+        "unlockedLevel": {
+          "type": "integer",
+          "description": "The highest unlocked topic index (0: Limits, 1: Derivatives, 2: Integrals)."
+        },
+        "badges": {
+          "type": "array",
+          "description": "List of unlocked gamified badges."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when progress was last updated."
+        }
+      },
+      "required": [
+        "userId",
+        "displayName",
+        "score",
+        "unlockedLevel",
+        "badges",
+        "updatedAt"
+      ]
+    },
+    "UserProfilePrivate": {
+      "title": "Private Information",
+      "description": "Private student data containing personally identifiable information (PII).",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Unique identifier of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the student."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of modification."
+        }
+      },
+      "required": [
+        "userId",
+        "email",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfilePublic",
+      "description": "Publicly accessible profile used for Leaderboard and basic progress sharing."
+    },
+    "/usersPrivate/{userId}": {
+      "schema": "UserProfilePrivate",
+      "description": "Private configuration storing securely isolated email addresses to conform to privacy criteria."
+    }
+  }
+}
